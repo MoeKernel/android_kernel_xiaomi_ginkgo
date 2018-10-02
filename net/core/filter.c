@@ -3740,10 +3740,68 @@ static bool lwt_is_valid_access(int off, int size,
 	return bpf_skb_is_valid_access(off, size, type, prog, info);
 }
 
-static bool sock_filter_is_valid_access(int off, int size,
-					enum bpf_access_type type,
-					const struct bpf_prog *prog,
-					struct bpf_insn_access_aux *info)
+
+/* Attach type specific accesses */
+static bool __sock_filter_check_attach_type(int off,
+					    enum bpf_access_type access_type,
+					    enum bpf_attach_type attach_type)
+{
+	switch (off) {
+	case offsetof(struct bpf_sock, bound_dev_if):
+	case offsetof(struct bpf_sock, mark):
+	case offsetof(struct bpf_sock, priority):
+		switch (attach_type) {
+		case BPF_CGROUP_INET_SOCK_CREATE:
+			goto full_access;
+		default:
+			return false;
+		}
+	case bpf_ctx_range(struct bpf_sock, src_ip4):
+		switch (attach_type) {
+		case BPF_CGROUP_INET4_POST_BIND:
+			goto read_only;
+		default:
+			return false;
+		}
+	case bpf_ctx_range_till(struct bpf_sock, src_ip6[0], src_ip6[3]):
+		switch (attach_type) {
+		case BPF_CGROUP_INET6_POST_BIND:
+			goto read_only;
+		default:
+			return false;
+		}
+	case bpf_ctx_range(struct bpf_sock, src_port):
+		switch (attach_type) {
+		case BPF_CGROUP_INET4_POST_BIND:
+		case BPF_CGROUP_INET6_POST_BIND:
+			goto read_only;
+		default:
+			return false;
+		}
+	}
+read_only:
+	return access_type == BPF_READ;
+full_access:
+	return true;
+}
+
+static bool __sock_filter_check_size(int off, int size,
+				     struct bpf_insn_access_aux *info)
+{
+	const int size_default = sizeof(__u32);
+
+	switch (off) {
+	case bpf_ctx_range(struct bpf_sock, src_ip4):
+	case bpf_ctx_range_till(struct bpf_sock, src_ip6[0], src_ip6[3]):
+		bpf_ctx_record_field_size(info, size_default);
+		return bpf_ctx_narrow_access_ok(off, size, size_default);
+	}
+
+	return size == size_default;
+}
+
+bool bpf_sock_is_valid_access(int off, int size, enum bpf_access_type type,
+			      struct bpf_insn_access_aux *info)
 {
 	if (type == BPF_WRITE) {
 		switch (off) {
@@ -3762,9 +3820,21 @@ static bool sock_filter_is_valid_access(int off, int size,
 	if (off % size != 0)
 		return false;
 	if (size != sizeof(__u32))
+	if (!__sock_filter_check_size(off, size, info))
 		return false;
 
 	return true;
+}
+
+static bool sock_filter_is_valid_access(int off, int size,
+					enum bpf_access_type type,
+					const struct bpf_prog *prog,
+					struct bpf_insn_access_aux *info)
+{
+	if (!bpf_sock_is_valid_access(off, size, type, info))
+		return false;
+	return __sock_filter_check_attach_type(off, type,
+					       prog->expected_attach_type);
 }
 
 static int bpf_unclone_prologue(struct bpf_insn *insn_buf, bool direct_write,
@@ -4402,10 +4472,10 @@ static u32 bpf_convert_ctx_access(enum bpf_access_type type,
 	return insn - insn_buf;
 }
 
-static u32 sock_filter_convert_ctx_access(enum bpf_access_type type,
-					  const struct bpf_insn *si,
-					  struct bpf_insn *insn_buf,
-					  struct bpf_prog *prog, u32 *target_size)
+u32 bpf_sock_convert_ctx_access(enum bpf_access_type type,
+				const struct bpf_insn *si,
+				struct bpf_insn *insn_buf,
+				struct bpf_prog *prog, u32 *target_size)
 {
 	struct bpf_insn *insn = insn_buf;
 
@@ -4923,7 +4993,7 @@ const struct bpf_prog_ops lwt_xmit_prog_ops = {
 const struct bpf_verifier_ops cg_sock_verifier_ops = {
 	.get_func_proto		= sock_filter_func_proto,
 	.is_valid_access	= sock_filter_is_valid_access,
-	.convert_ctx_access	= sock_filter_convert_ctx_access,
+	.convert_ctx_access	= bpf_sock_convert_ctx_access,
 };
 
 const struct bpf_prog_ops cg_sock_prog_ops = {
