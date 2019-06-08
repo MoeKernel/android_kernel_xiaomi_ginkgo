@@ -594,10 +594,15 @@ find_leftmost:
 	/* Find the leftmost non-intermediate node, all intermediate nodes
 	 * have exact two children, so this function will never return NULL.
 	 */
-	for (node = rcu_dereference(*root); node;) {
-		if (!(node->flags & LPM_TREE_NODE_FLAG_IM))
+	for (node = search_root; node;) {
+		if (node->flags & LPM_TREE_NODE_FLAG_IM) {
+			node = rcu_dereference(node->child[0]);
+		} else {
 			next_node = node;
-		node = rcu_dereference(node->child[0]);
+			node = rcu_dereference(node->child[0]);
+			if (!node)
+				node = rcu_dereference(next_node->child[1]);
+		}
 	}
 do_copy:
 	next_key->prefixlen = next_node->prefixlen;
