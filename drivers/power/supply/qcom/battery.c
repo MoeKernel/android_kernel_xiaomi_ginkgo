@@ -202,20 +202,11 @@ static int cp_get_parallel_mode(struct pl_data *chip, int mode)
 
 static int get_adapter_icl_based_ilim(struct pl_data *chip)
 {
-	int main_icl = -EINVAL, adapter_icl = -EINVAL, final_icl = -EINVAL;
-	int rc = -EINVAL;
-	union power_supply_propval pval = {0, };
+	int main_icl, target_icl = -EINVAL;
 
-	rc = power_supply_get_property(chip->usb_psy,
-			POWER_SUPPLY_PROP_PD_ACTIVE, &pval);
-	if (rc < 0)
-		pr_err("Failed to read PD_ACTIVE status rc=%d\n",
-				rc);
-	/* Check for QC 3, 3.5 and PPS adapters, return if its none of them */
-	if (chip->charger_type != POWER_SUPPLY_TYPE_USB_HVDCP_3 &&
-		chip->charger_type != POWER_SUPPLY_TYPE_USB_HVDCP_3P5 &&
-		pval.intval != POWER_SUPPLY_PD_PPS_ACTIVE)
-		return final_icl;
+	if ((chip->charger_type != POWER_SUPPLY_TYPE_USB_HVDCP_3)
+		&& (chip->charger_type != POWER_SUPPLY_TYPE_USB_HVDCP_3P5))
+		return target_icl;
 
 	/*
 	 * For HVDCP3/HVDCP_3P5 adapters, limit max. ILIM as:
