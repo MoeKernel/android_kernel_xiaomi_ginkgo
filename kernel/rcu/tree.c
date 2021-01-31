@@ -824,6 +824,21 @@ static void rcu_eqs_enter(bool user)
 		rcu_eqs_enter_common(user);
 	else
 		rdtp->dynticks_nesting -= DYNTICK_TASK_NEST_VALUE;
+		     rdp->dynticks_nesting == 0);
+	if (rdp->dynticks_nesting != 1) {
+		rdp->dynticks_nesting--;
+		return;
+	}
+
+	lockdep_assert_irqs_disabled();
+	trace_rcu_dyntick(TPS("Start"), rdp->dynticks_nesting, 0, atomic_read(&rdp->dynticks));
+	WARN_ON_ONCE(IS_ENABLED(CONFIG_RCU_EQS_DEBUG) && !user && !is_idle_task(current));
+	rdp = this_cpu_ptr(&rcu_data);
+	rcu_prepare_for_idle();
+	rcu_preempt_deferred_qs(current);
+	WRITE_ONCE(rdp->dynticks_nesting, 0); /* Avoid irq-access tearing. */
+	rcu_dynticks_eqs_enter();
+	rcu_dynticks_task_enter();
 }
 
 /**
@@ -841,6 +856,10 @@ static void rcu_eqs_enter(bool user)
 void rcu_idle_enter(void)
 {
 	RCU_LOCKDEP_WARN(!irqs_disabled(), "rcu_idle_enter() invoked with irqs enabled!!!");
+	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+
+	lockdep_assert_irqs_disabled();
+	do_nocb_deferred_wakeup(rdp);
 	rcu_eqs_enter(false);
 }
 
@@ -856,6 +875,14 @@ void rcu_idle_enter(void)
 void rcu_user_enter(void)
 {
 	RCU_LOCKDEP_WARN(!irqs_disabled(), "rcu_user_enter() invoked with irqs enabled!!!");
+	struct rcu_data *rdp = this_cpu_ptr(&rcu_data);
+
+	lockdep_assert_irqs_disabled();
+
+	instrumentation_begin();
+	do_nocb_deferred_wakeup(rdp);
+	instrumentation_end();
+
 	rcu_eqs_enter(true);
 }
 #endif /* CONFIG_NO_HZ_FULL */
