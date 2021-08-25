@@ -48,25 +48,35 @@ struct z_erofs_decompress_req {
  * For all managed pages, PG_private should be set with 1 extra refcount,
  * which is used for page reclaim / migration.
  */
-#define Z_EROFS_MAPPING_STAGING         ((void *)0x5A110C8D)
 
-/* check if a page is marked as staging */
-static inline bool z_erofs_page_is_staging(struct page *page)
+/*
+ * short-lived pages are pages directly from buddy system with specific
+ * page->private (no need to set PagePrivate since these are non-LRU /
+ * non-movable pages and bypass reclaim / migration code).
+ */
+static inline bool z_erofs_is_shortlived_page(struct page *page)
 {
-	return page->mapping == Z_EROFS_MAPPING_STAGING;
-}
-
-static inline bool z_erofs_put_stagingpage(struct list_head *pagepool,
-					   struct page *page)
-{
-	if (!z_erofs_page_is_staging(page))
+	if (page->private != Z_EROFS_SHORTLIVED_PAGE)
 		return false;
 
-	/* staging pages should not be used by others at the same time */
-	if (page_ref_count(page) > 1)
+	DBG_BUGON(page->mapping);
+	return true;
+}
+
+static inline bool z_erofs_put_shortlivedpage(struct list_head *pagepool,
+					      struct page *page)
+{
+	if (!z_erofs_is_shortlived_page(page))
+		return false;
+
+	/* short-lived pages should not be used by others at the same time */
+	if (page_ref_count(page) > 1) {
 		put_page(page);
-	else
+	} else {
+		/* follow the pcluster rule above. */
+		set_page_private(page, 0);
 		list_add(&page->lru, pagepool);
+	}
 	return true;
 }
 
