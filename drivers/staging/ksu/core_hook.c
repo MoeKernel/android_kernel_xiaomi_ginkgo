@@ -303,7 +303,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 		if (is_manager() || 0 == current_uid().val) {
 			u32 version = KERNEL_SU_VERSION;
 			if (copy_to_user(arg3, &version, sizeof(version))) {
-				pr_err("prctl reply error, cmd: %lu\n", arg2);
+				pr_debug("prctl reply error, cmd: %lu\n", arg2);
 			}
 		}
 		return 0;
@@ -377,7 +377,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 						  sizeof(u32) * array_length)) {
 					if (copy_to_user(result, &reply_ok,
 							 sizeof(reply_ok))) {
-						pr_err("prctl reply error, cmd: %lu\n",
+						pr_debug("prctl reply error, cmd: %lu\n",
 						       arg2);
 					}
 				} else {
@@ -402,7 +402,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 			if (!copy_to_user(arg4, &allow, sizeof(allow))) {
 				if (copy_to_user(result, &reply_ok,
 						 sizeof(reply_ok))) {
-					pr_err("prctl reply error, cmd: %lu\n",
+					pr_debug("prctl reply error, cmd: %lu\n",
 					       arg2);
 				}
 			} else {
@@ -433,7 +433,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 				return 0;
 			}
 			if (copy_to_user(result, &reply_ok, sizeof(reply_ok))) {
-				pr_err("prctl reply error, cmd: %lu\n", arg2);
+				pr_debug("prctl reply error, cmd: %lu\n", arg2);
 			}
 		}
 		return 0;
@@ -449,7 +449,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 		// todo: validate the params
 		if (ksu_set_app_profile(&profile, true)) {
 			if (copy_to_user(result, &reply_ok, sizeof(reply_ok))) {
-				pr_err("prctl reply error, cmd: %lu\n", arg2);
+				pr_debug("prctl reply error, cmd: %lu\n", arg2);
 			}
 		}
 		return 0;
@@ -475,7 +475,7 @@ static bool should_umount(struct path *path)
 	}
 
 	if (current->nsproxy->mnt_ns == init_nsproxy.mnt_ns) {
-		pr_info("ignore global mnt namespace process: %d\n",
+		pr_debug("ignore global mnt namespace process: %d\n",
 			current_uid().val);
 		return false;
 	}
@@ -561,7 +561,7 @@ int ksu_handle_setuid(struct cred *new, const struct cred *old)
 		return 0;
 	}
 	// umount the target mnt
-	pr_info("handle umount for uid: %d, pid: %d\n", new_uid.val, current->pid);
+	pr_debug("handle umount for uid: %d, pid: %d\n", new_uid.val, current->pid);
 
 	// fixme: use `collect_mounts` and `iterate_mount` to iterate all mountpoint and
 	// filter the mountpoint whose target is `/data/adb`
