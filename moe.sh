@@ -1,9 +1,8 @@
 #!/bin/bash
-#
-# Compile script for MoeKernel🐇
+# Compile script for MoeKernel
 # Copyright (C) 2020-2021 Adithya R.
 
-SECONDS=0 # builtin bash timer
+SECONDS=0
 ZIPNAME="Moe-$(date '+%Y%m%d').zip"
 TC_DIR="$HOME/tc/clang-18.0.0"
 GCC_64_DIR="$HOME/tc/aarch64-linux-android-4.9"
@@ -87,7 +86,7 @@ if [ -f "out/arch/arm64/boot/Image.gz-dtb" ] && \
     echo -e "\nKernel compiled successfully! Zipping up...\n"
     if [ -d "$AK3_DIR" ]; then
         cp -r $AK3_DIR AnyKernel3
-    elif ! git clone -q https://github.com/whyakari/AnyKernel3; then
+    elif ! git clone -q https://github.com/MoeKernel/AnyKernel3; then
         echo -e "\nAnyKernel3 repo not found locally and cloning failed! Aborting..."
         exit 1
     fi
@@ -102,7 +101,6 @@ if [ -f "out/arch/arm64/boot/Image.gz-dtb" ] && \
     rm -rf out/arch/arm64/boot
     echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
     echo "Zip: $ZIPNAME"
-    # curl --upload-file $ZIPNAME https://temp.sh/$ZIPNAME; echo
 else
     echo -e "\nCompilation failed!"
     exit 1
