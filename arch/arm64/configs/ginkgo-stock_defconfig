@@ -2,6 +2,9 @@
 # Automatically generated file; DO NOT EDIT.
 # Linux/arm64 4.14.190 Kernel Configuration
 #
+CONFIG_UNAME_OVERRIDE=y
+CONFIG_UNAME_OVERRIDE_TARGET="com.google.android.gms"
+CONFIG_UNAME_OVERRIDE_STRING="5.15.0-mainline-proton-dirty"
 CONFIG_ARM64=y
 CONFIG_64BIT=y
 CONFIG_ARCH_PHYS_ADDR_T_64BIT=y
