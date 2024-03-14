@@ -12,6 +12,8 @@ CONFIG_UNAME_OVERRIDE_STRING="5.15.0-mainline-proton-dirty"
 # zram
 CONFIG_ZRAM_SIZE_OVERRIDE=4
 
+CONFIG_INIT_STACK_ALL_ZERO=y
+
 ## Docker
 # Generally Necessary
 CONFIG_PID_NS=y
