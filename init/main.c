@@ -103,6 +103,46 @@ static int kernel_init(void *);
 extern void init_IRQ(void);
 extern void radix_tree_init(void);
 
+bool is_inline = false;
+EXPORT_SYMBOL(is_inline);
+
+static int __init read_is_inline(char *s)
+{
+    strtobool(s, &is_inline);
+    return 1;
+}
+__setup("init.is_inline=", read_is_inline);
+
+bool is_dt2w_sensor = false;
+EXPORT_SYMBOL(is_dt2w_sensor);
+
+static int __init read_is_dt2w_sensor(char *s)
+{
+    strtobool(s, &is_dt2w_sensor);
+    return 1;
+}
+__setup("init.is_dt2w_sensor=", read_is_dt2w_sensor);
+
+bool is_st2w_sensor = false;
+EXPORT_SYMBOL(is_st2w_sensor);
+
+static int __init read_is_st2w_sensor(char *s)
+{
+    strtobool(s, &is_st2w_sensor);
+    return 1;
+}
+__setup("init.is_st2w_sensor=", read_is_st2w_sensor);
+
+bool is_legacy_ebpf = false;
+EXPORT_SYMBOL(is_legacy_ebpf);
+
+static int __init read_is_legacy_ebpf(char *s)
+{
+    strtobool(s, &is_legacy_ebpf);
+    return 1;
+}
+__setup("init.is_legacy_ebpf=", read_is_legacy_ebpf);
+
 /*
  * Debug helper: via this flag we know that we are in 'early bootup code'
  * where only the boot processor is running with IRQ disabled.  This means
