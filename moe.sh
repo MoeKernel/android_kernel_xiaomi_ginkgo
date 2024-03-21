@@ -84,7 +84,7 @@ if [ -f "out/arch/arm64/boot/Image.gz-dtb" ] && \
     echo -e "\nKernel compiled successfully! Zipping up...\n"
     if [ -d "$AK3_DIR" ]; then
         cp -r $AK3_DIR AnyKernel3
-    elif ! git clone -q https://github.com/whyakari/AnyKernel3; then
+    elif ! git clone -b without-ksu -q https://github.com/whyakari/AnyKernel3; then
         echo -e "\nAnyKernel3 repo not found locally and cloning failed! Aborting..."
         exit 1
     fi
