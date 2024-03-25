@@ -1863,21 +1863,18 @@ static void zram_reset_device(struct zram *zram)
 		return;
 	}
 
-	zram_destroy_comps(zram);
-
 	set_capacity(zram->disk, 0);
 	part_stat_set_all(&zram->disk->part0, 0);
-
-	comp_algorithm_set(zram, ZRAM_PRIMARY_COMP, default_compressor);
-	up_write(&zram->init_lock);
 
 	/* I/O operation under all of CPU are done so let's free */
 	zram_meta_free(zram, zram->disksize);
 	zram->disksize = 0;
+	zram_destroy_comps(zram);
 	memset(&zram->stats, 0, sizeof(zram->stats));
-	zcomp_destroy(zram->comp);
-	zram->comp = NULL;
 	reset_bdev(zram);
+
+	comp_algorithm_set(zram, ZRAM_PRIMARY_COMP, default_compressor);
+	up_write(&zram->init_lock);
 }
 
 static ssize_t disksize_store(struct device *dev,
