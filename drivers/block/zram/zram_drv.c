@@ -1854,9 +1854,6 @@ static void zram_destroy_comps(struct zram *zram)
 
 static void zram_reset_device(struct zram *zram)
 {
-	struct zcomp *comp;
-	u64 disksize;
-
 	down_write(&zram->init_lock);
 
 	zram->limit_pages = 0;
@@ -1866,8 +1863,6 @@ static void zram_reset_device(struct zram *zram)
 		return;
 	}
 
-	disksize = zram->disksize;
-	zram->disksize = 0;
 	zram_destroy_comps(zram);
 
 	set_capacity(zram->disk, 0);
@@ -1875,9 +1870,13 @@ static void zram_reset_device(struct zram *zram)
 
 	comp_algorithm_set(zram, ZRAM_PRIMARY_COMP, default_compressor);
 	up_write(&zram->init_lock);
+
 	/* I/O operation under all of CPU are done so let's free */
-	zram_meta_free(zram, disksize);
+	zram_meta_free(zram, zram->disksize);
+	zram->disksize = 0;
 	memset(&zram->stats, 0, sizeof(zram->stats));
+	zcomp_destroy(zram->comp);
+	zram->comp = NULL;
 	reset_bdev(zram);
 }
 
