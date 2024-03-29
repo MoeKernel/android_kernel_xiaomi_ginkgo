@@ -477,7 +477,7 @@ static int __init init_sdcardfs_fs(void)
 {
 	int err;
 
-    if (sdcardfs_enabled) {
+	if (sdcardfs_enabled) {
 		if (!is_dynamic_partitions()) {
 			pr_info("SDCardFS enabled on ROM without dynamic partitions\n");
 		} else {
