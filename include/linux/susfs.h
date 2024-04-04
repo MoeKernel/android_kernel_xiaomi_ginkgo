@@ -121,7 +121,7 @@ int susfs_update_suspicious_kstat(struct st_susfs_suspicious_kstat* __user user_
 int susfs_add_try_umount(struct st_susfs_try_umount* __user user_info);
 int susfs_add_uname(struct st_susfs_uname* __user user_info);
 
-int susfs_is_suspicious_path(struct path* file, int* errno_to_be_changed, int syscall_family);
+int susfs_is_suspicious_path(const struct path* file, int* errno_to_be_changed, int syscall_family);
 int susfs_suspicious_path(struct filename* name, int* errno_to_be_changed, int syscall_family);
 int susfs_suspicious_ino_for_filldir64(unsigned long ino);
 int susfs_is_suspicious_mount(struct vfsmount* mnt, struct path* root);

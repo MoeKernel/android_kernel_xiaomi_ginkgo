@@ -14,6 +14,8 @@
 #include <linux/version.h>
 #include <linux/susfs.h>
 
+#include "internal.h"
+
 LIST_HEAD(LH_SUSPICIOUS_PATH);
 LIST_HEAD(LH_KSTAT_SPOOFER);
 LIST_HEAD(LH_SUSPICIOUS_MOUNT_TYPE);
@@ -229,7 +231,7 @@ int susfs_add_uname(struct st_susfs_uname* __user user_info) {
 	return 0;
 }
 
-int susfs_is_suspicious_path(struct path* file, int* errno_to_be_changed, int syscall_family) {
+int susfs_is_suspicious_path(const struct path* file, int* errno_to_be_changed, int syscall_family) {
 	size_t size = 4096;
 	int res = -1;
 	int status = 0;
