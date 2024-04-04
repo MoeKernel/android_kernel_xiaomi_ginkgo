@@ -47,6 +47,10 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/namei.h>
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+#include <linux/susfs.h>
+#endif
+
 /* [Feb-1997 T. Schoebel-Theuer]
  * Fundamental changes in the pathname lookup mechanisms (namei)
  * were necessary because of omirr.  The reason is that omirr needs
@@ -3718,10 +3722,13 @@ struct file *do_filp_open(int dfd, struct filename *pathname,
 	int flags = op->lookup_flags;
 	struct file *filp;
 
-	if (suspicious_path(pathname)) {
-		return ERR_PTR(-ENOENT);
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	int error;
+	if (susfs_suspicious_path(pathname, &error, SYSCALL_FAMILY_ALL_ENOENT)) {
+		return ERR_PTR(error);
 	}
-	
+#endif
+
 	set_nameidata(&nd, dfd, pathname);
 	filp = path_openat(&nd, op, flags | LOOKUP_RCU);
 	if (unlikely(filp == ERR_PTR(-ECHILD)))
@@ -3916,13 +3923,18 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const char __user *, filename, umode_t, mode,
 	struct filename* fname;
 	int status;
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	struct filename* fname;
+	int status;
+
 	fname = getname_safe(filename);
-	status = suspicious_path(fname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_MKNOD);
 	putname_safe(fname);
 
 	if (status) {
-		return -ENOENT;
+		return error;
 	}
+#endif
 
 	unsigned int lookup_flags = 0;
 
@@ -4016,6 +4028,19 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const char __user *, pathname, umode_t, mode)
 		return -ENOENT;
 	}
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	struct filename* fname;
+	int status;
+
+	fname = getname_safe(pathname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_MKDIRAT);
+	putname_safe(fname);
+
+	if (status) {
+		return error;
+	}
+#endif
+
 retry:
 	dentry = user_path_create(dfd, pathname, &path, lookup_flags);
 	if (IS_ERR(dentry))
@@ -4094,9 +4119,20 @@ static long do_rmdir(int dfd, const char __user *pathname)
 	int type;
 	unsigned int lookup_flags = 0;
 
-	if (suspicious_path(name)) {
-		return -ENOENT;
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	struct filename* fname;
+	int status;
+
+	fname = getname_safe(pathname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_RMDIR);
+	putname_safe(fname);
+
+	if (status) {
+		return error;
 	}
+	error = 0;
+#endif
+
 retry:
 	name = filename_parentat(dfd, getname(pathname), lookup_flags,
 				&path, &last, &type);
@@ -4234,6 +4270,19 @@ static long do_unlinkat(int dfd, const char __user *pathname)
 	struct inode *delegated_inode = NULL;
 	unsigned int lookup_flags = 0;
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	struct filename* fname;
+	int status;
+
+	fname = getname_safe(pathname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_UNLINKAT);
+	putname_safe(fname);
+
+	if (status) {
+		return error;
+	}
+#endif
+
 retry:
 	name = filename_parentat(dfd, getname(pathname), lookup_flags,
 				&path, &last, &type);
@@ -4350,22 +4399,19 @@ SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
 	struct filename* fname;
 	int status;
 
-	fname = getname_safe(oldname);
-	status = suspicious_path(fname);
-	putname_safe(fname);
-
-	if (status) {
-		return -ENOENT;
-	}
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	struct filename* fname;
+	int status;
 
 	fname = getname_safe(newname);
-	status = suspicious_path(fname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_SYMLINKAT_NEWNAME);
 	putname_safe(fname);
 
 	if (status) {
-		return -ENOENT;
+		return error;
 	}
-	
+#endif
+
 	from = getname(oldname);
 	if (IS_ERR(from))
 		return PTR_ERR(from);
@@ -4499,22 +4545,27 @@ SYSCALL_DEFINE5(linkat, int, olddfd, const char __user *, oldname,
 	struct filename* fname;
 	int status;
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	struct filename* fname;
+	int status;
+
 	fname = getname_safe(oldname);
-	status = suspicious_path(fname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_LINKAT_OLDNAME);
 	putname_safe(fname);
 
 	if (status) {
-		return -ENOENT;
+		return error;
 	}
 
 	fname = getname_safe(newname);
-	status = suspicious_path(fname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_LINKAT_NEWNAME);
 	putname_safe(fname);
 
 	if (status) {
-		return -ENOENT;
+		return error;
 	}
-	
+#endif
+
 	if ((flags & ~(AT_SYMLINK_FOLLOW | AT_EMPTY_PATH)) != 0)
 		return -EINVAL;
 	/*
@@ -4777,22 +4828,27 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
 	struct filename* fname;
 	int status;
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	struct filename* fname;
+	int status;
+
 	fname = getname_safe(oldname);
-	status = suspicious_path(fname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_RENAMEAT2_OLDNAME);
 	putname_safe(fname);
 
 	if (status) {
-		return -ENOENT;
+		return error;
 	}
 
 	fname = getname_safe(newname);
-	status = suspicious_path(fname);
+	status = susfs_suspicious_path(fname, &error, SYSCALL_FAMILY_RENAMEAT2_NEWNAME);
 	putname_safe(fname);
 
 	if (status) {
-		return -ENOENT;
+		return error;
 	}
-	
+#endif
+
 	if (flags & ~(RENAME_NOREPLACE | RENAME_EXCHANGE | RENAME_WHITEOUT))
 		return -EINVAL;
 
@@ -4814,11 +4870,13 @@ retry:
 		goto exit;
 	}
 
-	if (suspicious_path(from)) {
-		error = -ENOENT;
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	status = susfs_suspicious_path(from, &error, SYSCALL_FAMILY_RENAMEAT2_OLDNAME);
+	if (status) {
 		goto exit;
 	}
-	
+#endif
+
 	to = filename_parentat(newdfd, getname(newname), lookup_flags,
 				&new_path, &new_last, &new_type);
 	if (IS_ERR(to)) {
@@ -4830,6 +4888,13 @@ retry:
 		error = -ENOENT;
 		goto exit;
 	}
+
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	status = susfs_suspicious_path(to, &error, SYSCALL_FAMILY_RENAMEAT2_NEWNAME);
+	if (status) {
+		goto exit;
+	}
+#endif
 
 	error = -EXDEV;
 	if (old_path.mnt != new_path.mnt)

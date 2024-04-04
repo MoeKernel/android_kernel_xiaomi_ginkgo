@@ -77,6 +77,10 @@
 #include <asm/io.h>
 #include <asm/unistd.h>
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+#include <linux/susfs.h>
+#endif
+
 #ifndef SET_UNALIGN_CTL
 # define SET_UNALIGN_CTL(a, b)	(-EINVAL)
 #endif
@@ -1255,6 +1259,9 @@ SYSCALL_DEFINE1(uname, struct old_utsname __user *, name)
 	down_read(&uts_sem);
 	memcpy(&tmp, utsname(), sizeof(tmp));
 	up_read(&uts_sem);
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	susfs_spoof_uname(&tmp);
+#endif
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
 		return -EFAULT;
 
