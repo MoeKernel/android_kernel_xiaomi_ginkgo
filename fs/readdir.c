@@ -23,6 +23,10 @@
 
 #include <linux/uaccess.h>
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+#include <linux/susfs.h>
+#endif
+
 int iterate_dir(struct file *file, struct dir_context *ctx)
 {
 	struct inode *inode = file_inode(file);
@@ -310,6 +314,11 @@ static int filldir64(struct dir_context *ctx, const char *name, int namlen,
 	if (dirent) {
 		if (signal_pending(current))
 			return -EINTR;
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+		if (susfs_suspicious_ino_for_filldir64(ino)) {
+			return 0;
+		}
+#endif
 		if (__put_user(offset, &dirent->d_off))
 			goto efault;
 	}

@@ -22,6 +22,11 @@
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
 
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+#include <linux/susfs.h>
+#endif
+
+
 /**
  * generic_fillattr - Fill in the basic attributes from the inode struct
  * @inode: Inode to use as the source
@@ -111,9 +116,11 @@ int vfs_getattr(const struct path *path, struct kstat *stat,
 {
 	int retval;
 
-	if (is_suspicious_path(path)) {
-		return -ENOENT;
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	if (susfs_is_suspicious_path(path, &retval, SYSCALL_FAMILY_ALL_ENOENT)) {
+		return retval;
 	}
+#endif
 
 	retval = security_inode_getattr(path);
 	if (retval)
@@ -339,6 +346,9 @@ static int cp_new_stat(struct kstat *stat, struct stat __user *statbuf)
 #endif
 	tmp.st_blocks = stat->blocks;
 	tmp.st_blksize = stat->blksize;
+#if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
+	susfs_suspicious_kstat(tmp.st_ino, &tmp);
+#endif
 	return copy_to_user(statbuf,&tmp,sizeof(tmp)) ? -EFAULT : 0;
 }
 
