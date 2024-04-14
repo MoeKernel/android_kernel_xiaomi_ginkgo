@@ -12,6 +12,8 @@
 #define CMD_SUSFS_UPDATE_SUSPICIOUS_KSTAT 0x55559
 #define CMD_SUSFS_ADD_TRY_UMOUNT 0x5555a
 #define CMD_SUSFS_ADD_UNAME 0x5555b
+#define CMD_SUSFS_ADD_SUSPICIOUS_KSTAT_STATICALLY 0x5555c
+#define CMD_SUSFS_ENABLE_LOG 0x5555d
 
 #define SUSFS_MAX_LEN_PATHNAME 128
 #define SUSFS_MAX_LEN_MOUNT_TYPE_NAME 32
@@ -37,9 +39,9 @@
 #define getname_safe(name) (name == NULL ? ERR_PTR(-EINVAL) : getname(name))
 #define putname_safe(name) (IS_ERR(name) ? NULL : putname(name))
 
-#define uid_matches_suspicious_path() (current_uid().val >= 10000)
-#define uid_matches_suspicious_mount() (current_uid().val >= 10000)
-#define uid_matches_suspicious_kstat() (current_uid().val >= 10000)
+#define uid_matches_suspicious_path() (current_uid().val >= 2000)
+#define uid_matches_suspicious_mount() (current_uid().val >= 2000)
+#define uid_matches_suspicious_kstat() (current_uid().val >= 2000)
 
 struct st_susfs_suspicious_path {
     char                   name[SUSFS_MAX_LEN_PATHNAME];
@@ -60,18 +62,13 @@ struct st_susfs_suspicious_kstat {
     char                   target_pathname[SUSFS_MAX_LEN_PATHNAME];
     unsigned int           hide_in_maps;
     unsigned long          spoofed_ino;
-    dev_t		           spoofed_dev;
-	dev_t		           spoofed_rdev;
-    umode_t		           spoofed_mode;
-    unsigned int	       spoofed_st_nlink;
-    unsigned int	       spoofed_st_uid;
-    unsigned int	       spoofed_st_gid;
-    long	               spoofed_atime_tv_sec;
-    long	               spoofed_mtime_tv_sec;
-    long	               spoofed_ctime_tv_sec;
-    long		           spoofed_atime_tv_nsec;
-    long		           spoofed_mtime_tv_nsec;
-    long		           spoofed_ctime_tv_nsec;
+    dev_t                  spoofed_dev;
+    long                   spoofed_atime_tv_sec;
+    long                   spoofed_mtime_tv_sec;
+    long                   spoofed_ctime_tv_sec;
+    long                   spoofed_atime_tv_nsec;
+    long                   spoofed_mtime_tv_nsec;
+    long                   spoofed_ctime_tv_nsec;
 };
 
 struct st_susfs_try_umount {
@@ -126,9 +123,11 @@ int susfs_suspicious_path(struct filename* name, int* errno_to_be_changed, int s
 int susfs_suspicious_ino_for_filldir64(unsigned long ino);
 int susfs_is_suspicious_mount(struct vfsmount* mnt, struct path* root);
 void susfs_suspicious_kstat(unsigned long ino, struct stat* out_stat);
-int susfs_suspicious_kstat_or_hide_in_maps(unsigned long target_ino, unsigned long* orig_ino, dev_t* orig_dev);
+int susfs_suspicious_maps(unsigned long target_ino, unsigned long* orig_ino, dev_t* orig_dev);
 void susfs_try_umount(void);
 void susfs_spoof_uname(struct new_utsname* tmp);
+
+void susfs_set_log(bool enabled);
 
 void susfs_change_error_no_by_pathname(char* pathname, int* errno_to_be_changed, int syscall_family);
 

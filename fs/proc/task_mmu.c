@@ -473,9 +473,7 @@ show_map_vma(struct seq_file *m, struct vm_area_struct *vma, int is_pid)
 	start = vma->vm_start;
 	end = vma->vm_end;
 #if defined(CONFIG_KSU) && defined(CONFIG_KSU_SUSFS)
-	if (ino > 0) {
-		if (susfs_suspicious_kstat_or_hide_in_maps(ino, &ino, &dev)) return;
-	}
+	if (susfs_suspicious_maps(ino, &ino, &dev)) return;
 #endif
 	show_vma_header_prefix(m, start, end, flags, pgoff, dev, ino);
 
