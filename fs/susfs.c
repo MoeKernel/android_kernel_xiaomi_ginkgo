@@ -24,10 +24,6 @@ LIST_HEAD(LH_TRY_UMOUNT_PATH);
 struct st_susfs_uname my_uname;
 
 spinlock_t susfs_spin_lock;
-bool is_log_enable = true;
-#define SUSFS_LOGI(fmt, ...) if (is_log_enable) pr_info("susfs: " fmt, ##__VA_ARGS__)
-#define SUSFS_LOGE(fmt, ...) if (!is_log_enable) pr_err("susfs: " fmt, ##__VA_ARGS__)
-
 
 int susfs_add_suspicious_path(struct st_susfs_suspicious_path* __user user_info) {
     struct st_susfs_suspicious_path_list *cursor, *temp;
@@ -35,20 +31,20 @@ int susfs_add_suspicious_path(struct st_susfs_suspicious_path* __user user_info)
 	struct st_susfs_suspicious_path info;
 
 	if (copy_from_user(&info, user_info, sizeof(struct st_susfs_suspicious_path))) {
-		SUSFS_LOGE("failed copying from userspace.\n");
+		pr_err("susfs: failed copying from userspace.\n");
 		return 1;
 	}
 
     list_for_each_entry_safe(cursor, temp, &LH_SUSPICIOUS_PATH, list) {
         if (!strcmp(info.name, cursor->info.name)) {
-            SUSFS_LOGE("pathname: '%s' is already created in LH_SUSPICIOUS_PATH.\n", info.name);
+            pr_err("susfs: pathname: '%s' is already created in LH_SUSPICIOUS_PATH.\n", info.name);
             return 1;
         }
     }
 
     new_list = kmalloc(sizeof(struct st_susfs_suspicious_path_list), GFP_KERNEL);
     if (!new_list) {
-		SUSFS_LOGE("No enough memory.\n");
+		pr_err("susfs: No enough memory.\n");
 		return 1;
 	}
 
@@ -58,7 +54,7 @@ int susfs_add_suspicious_path(struct st_susfs_suspicious_path* __user user_info)
     spin_lock(&susfs_spin_lock);
     list_add_tail(&new_list->list, &LH_SUSPICIOUS_PATH);
     spin_unlock(&susfs_spin_lock);
-    SUSFS_LOGI("pathname: '%s' is successfully added to LH_SUSPICIOUS_PATH.\n", info.name);
+    pr_info("susfs: pathname: '%s' is successfully added to LH_SUSPICIOUS_PATH.\n", info.name);
     return 0;
 }
 
@@ -68,20 +64,20 @@ int susfs_add_mount_type(struct st_susfs_suspicious_mount_type* __user user_info
 	struct st_susfs_suspicious_mount_type info;
 
 	if (copy_from_user(&info, user_info, sizeof(struct st_susfs_suspicious_mount_type))) {
-		SUSFS_LOGE("failed copying from userspace.\n");
+		pr_err("susfs: failed copying from userspace.\n");
 		return 1;
 	}
 
     list_for_each_entry_safe(cursor, temp, &LH_SUSPICIOUS_MOUNT_TYPE, list) {
         if (!strcmp(info.name, cursor->info.name)) {
-            SUSFS_LOGE("mount_type_name: '%s' is already created in LH_SUSPICIOUS_MOUNT_TYPE.\n", info.name);
+            pr_err("susfs: mount_type_name: '%s' is already created in LH_SUSPICIOUS_MOUNT_TYPE.\n", info.name);
             return 1;
         }
     }
 
     new_list = kmalloc(sizeof(struct st_susfs_suspicious_mount_type_list), GFP_KERNEL);
     if (!new_list) {
-		SUSFS_LOGE("No enough memory.\n");
+		pr_err("susfs: No enough memory.\n");
 		return 1;
 	}
 
@@ -91,7 +87,7 @@ int susfs_add_mount_type(struct st_susfs_suspicious_mount_type* __user user_info
     spin_lock(&susfs_spin_lock);
     list_add_tail(&new_list->list, &LH_SUSPICIOUS_MOUNT_TYPE);
     spin_unlock(&susfs_spin_lock);
-    SUSFS_LOGI("mount_type_name: '%s' is successfully added to LH_SUSPICIOUS_MOUNT_TYPE.\n", info.name);
+    pr_info("susfs: mount_type_name: '%s' is successfully added to LH_SUSPICIOUS_MOUNT_TYPE.\n", info.name);
     return 0;
 }
 
@@ -101,20 +97,20 @@ int susfs_add_mount_path(struct st_susfs_suspicious_mount_path* __user user_info
 	struct st_susfs_suspicious_mount_path info;
 
 	if (copy_from_user(&info, user_info, sizeof(struct st_susfs_suspicious_mount_path))) {
-		SUSFS_LOGE("failed copying from userspace.\n");
+		pr_err("susfs: failed copying from userspace.\n");
 		return 1;
 	}
 
     list_for_each_entry_safe(cursor, temp, &LH_SUSPICIOUS_MOUNT_PATH, list) {
         if (!strcmp(info.name, cursor->info.name)) {
-            SUSFS_LOGE("mount_path: '%s' is already created in LH_SUSPICIOUS_MOUNT_PATH.\n", info.name);
+            pr_err("susfs: mount_path: '%s' is already created in LH_SUSPICIOUS_MOUNT_PATH.\n", info.name);
             return 1;
         }
     }
 
     new_list = kmalloc(sizeof(struct st_susfs_suspicious_mount_path_list), GFP_KERNEL);
     if (!new_list) {
-		SUSFS_LOGE("No enough memory.\n");
+		pr_err("susfs: No enough memory.\n");
 		return 1;
 	}
 
@@ -124,7 +120,7 @@ int susfs_add_mount_path(struct st_susfs_suspicious_mount_path* __user user_info
     spin_lock(&susfs_spin_lock);
     list_add_tail(&new_list->list, &LH_SUSPICIOUS_MOUNT_PATH);
     spin_unlock(&susfs_spin_lock);
-    SUSFS_LOGI("mount_path: '%s' is successfully added to LH_SUSPICIOUS_MOUNT_PATH.\n", info.name);
+    pr_info("susfs: mount_path: '%s' is successfully added to LH_SUSPICIOUS_MOUNT_PATH.\n", info.name);
     return 0;
 }
 
@@ -134,29 +130,32 @@ int susfs_add_suspicious_kstat(struct st_susfs_suspicious_kstat* __user user_inf
 	struct st_susfs_suspicious_kstat info;
 
 	if (copy_from_user(&info, user_info, sizeof(struct st_susfs_suspicious_kstat))) {
-		SUSFS_LOGE("failed copying from userspace.\n");
+		pr_err("susfs: failed copying from userspace.\n");
 		return 1;
 	}
 
     list_for_each_entry_safe(cursor, temp, &LH_KSTAT_SPOOFER, list) {
         if (!strcmp(info.target_pathname, cursor->info.target_pathname)) {
-            SUSFS_LOGE("target_pathname: '%s' is already created in LH_KSTAT_SPOOFER.\n", info.target_pathname);
+            pr_err("susfs: target_pathname: '%s' is already created in LH_KSTAT_SPOOFER.\n", info.target_pathname);
             return 1;
         }
     }
 
     new_list = kmalloc(sizeof(struct st_susfs_suspicious_kstat_list), GFP_KERNEL);
     if (!new_list) {
-		SUSFS_LOGE("No enough memory.\n");
+		pr_err("susfs: No enough memory.\n");
 		return 1;
 	}
 
 	memcpy(&new_list->info, &info, sizeof(struct st_susfs_suspicious_kstat));
+	// Always make sure info.target_ino is 0 first because users won't know about the changed ino
+	// only after it is bind mounted or overlayed.
+	new_list->info.target_ino = 0;
     INIT_LIST_HEAD(&new_list->list);
     spin_lock(&susfs_spin_lock);
     list_add_tail(&new_list->list, &LH_KSTAT_SPOOFER);
     spin_unlock(&susfs_spin_lock);
-    SUSFS_LOGI("target_pathname: '%s' is successfully added to LH_KSTAT_SPOOFER.\n", new_list->info.target_pathname);
+    pr_info("susfs: target_pathname: '%s' is successfully added to LH_KSTAT_SPOOFER.\n", new_list->info.target_pathname);
     return 0;
 }
 
@@ -165,19 +164,19 @@ int susfs_update_suspicious_kstat(struct st_susfs_suspicious_kstat* __user user_
 	struct st_susfs_suspicious_kstat info;
 
 	if (copy_from_user(&info, user_info, sizeof(struct st_susfs_suspicious_kstat))) {
-		SUSFS_LOGE("failed copying from userspace.\n");
+		pr_err("susfs: failed copying from userspace.\n");
 		return 1;
 	}
 
     list_for_each_entry_safe(cursor, temp, &LH_KSTAT_SPOOFER, list) {
         if (!strcmp(info.target_pathname, cursor->info.target_pathname)) {
-            SUSFS_LOGI("updating target_ino for pathname: '%s' in LH_KSTAT_SPOOFER.\n", info.target_pathname);
+            pr_info("susfs: updating target_ino for pathname: '%s' in LH_KSTAT_SPOOFER.\n", info.target_pathname);
 			cursor->info.target_ino = info.target_ino;
             return 0;
         }
     }
 
-	SUSFS_LOGE("pathname: '%s' is not found in LH_KSTAT_SPOOFER.\n", info.target_pathname);
+	pr_err("susfs: pathname: '%s' is not found in LH_KSTAT_SPOOFER.\n", info.target_pathname);
 	return 1;
 }
 
@@ -187,20 +186,20 @@ int susfs_add_try_umount(struct st_susfs_try_umount* __user user_info) {
 	struct st_susfs_try_umount info;
 
 	if (copy_from_user(&info, user_info, sizeof(struct st_susfs_try_umount))) {
-		SUSFS_LOGE("failed copying from userspace.\n");
+		pr_err("susfs: failed copying from userspace.\n");
 		return 1;
 	}
 
     list_for_each_entry_safe(cursor, temp, &LH_TRY_UMOUNT_PATH, list) {
         if (!strcmp(info.name, cursor->info.name)) {
-            SUSFS_LOGE("name: '%s' is already created in LH_TRY_UMOUNT_PATH.\n", info.name);
+            pr_err("susfs: name: '%s' is already created in LH_TRY_UMOUNT_PATH.\n", info.name);
             return 1;
         }
     }
 
     new_list = kmalloc(sizeof(struct st_susfs_try_umount_list), GFP_KERNEL);
     if (!new_list) {
-		SUSFS_LOGE("No enough memory.\n");
+		pr_err("susfs: No enough memory.\n");
 		return 1;
 	}
 
@@ -210,7 +209,7 @@ int susfs_add_try_umount(struct st_susfs_try_umount* __user user_info) {
     spin_lock(&susfs_spin_lock);
     list_add_tail(&new_list->list, &LH_TRY_UMOUNT_PATH);
     spin_unlock(&susfs_spin_lock);
-    SUSFS_LOGI("pathname: '%s' is successfully added to LH_TRY_UMOUNT_PATH.\n", new_list->info.name);
+    pr_info("susfs: pathname: '%s' is successfully added to LH_TRY_UMOUNT_PATH.\n", new_list->info.name);
     return 0;
 }
 
@@ -218,7 +217,7 @@ int susfs_add_uname(struct st_susfs_uname* __user user_info) {
 	struct st_susfs_uname info;
 
 	if (copy_from_user(&info, user_info, sizeof(struct st_susfs_uname))) {
-		SUSFS_LOGE("failed copying from userspace.\n");
+		pr_err("susfs: failed copying from userspace.\n");
 		return 1;
 	}
 
@@ -272,7 +271,7 @@ int susfs_is_suspicious_path(const struct path* file, int* errno_to_be_changed, 
 
     list_for_each_entry_safe(cursor, temp, &LH_SUSPICIOUS_PATH, list) {
         if (!strcmp(cursor->info.name, path)) {
-            SUSFS_LOGI("hiding pathname '%s' for UID %i\n", cursor->info.name, current_uid().val);
+            pr_info("susfs: hiding pathname '%s' for UID %i\n", cursor->info.name, current_uid().val);
 			if (errno_to_be_changed != NULL) {
 				susfs_change_error_no_by_pathname(path, errno_to_be_changed, syscall_family);
 			}
@@ -315,7 +314,7 @@ int susfs_suspicious_ino_for_filldir64(unsigned long ino) {
 	if (!uid_matches_suspicious_path()) return 0;
 	list_for_each_entry_safe(cursor, temp, &LH_SUSPICIOUS_PATH, list) {
         if (cursor->info.ino == ino) {
-            SUSFS_LOGI("hiding pathname '%s' for UID %i\n", cursor->info.name, current_uid().val);
+            pr_info("susfs: hiding pathname '%s' for UID %i\n", cursor->info.name, current_uid().val);
 			return 1;
         }
     }
@@ -343,7 +342,7 @@ int susfs_is_suspicious_mount(struct vfsmount* mnt, struct path* root) {
 
 	list_for_each_entry_safe(cursor_mount_type, temp_mount_type, &LH_SUSPICIOUS_MOUNT_TYPE, list) {
         if (!strcmp(mnt->mnt_root->d_sb->s_type->name, cursor_mount_type->info.name)) {
-            SUSFS_LOGI("mount point with suspicious type '%s' won't be shown to process with UID %i\n", mnt->mnt_root->d_sb->s_type->name, current_uid().val);
+            pr_info("susfs: mount point with suspicious type '%s' won't be shown to process with UID %i\n", mnt->mnt_root->d_sb->s_type->name, current_uid().val);
 			status = 1;
 			goto out;
         }
@@ -375,7 +374,7 @@ int susfs_is_suspicious_mount(struct vfsmount* mnt, struct path* root) {
 
 	list_for_each_entry_safe(cursor_mount_path, temp_mount_path, &LH_SUSPICIOUS_MOUNT_PATH, list) {
         if (!strcmp(path, cursor_mount_path->info.name)) {
-            SUSFS_LOGI("mount point with suspicious path '%s' won't be shown to process with UID %i\n", path, current_uid().val);
+            pr_info("susfs: mount point with suspicious path '%s' won't be shown to process with UID %i\n", path, current_uid().val);
 			status = 1;
 			goto out;
         }
@@ -392,9 +391,14 @@ void susfs_suspicious_kstat(unsigned long ino, struct stat* out_stat) {
 	if (!uid_matches_suspicious_kstat()) return;
 	list_for_each_entry_safe(cursor, temp, &LH_KSTAT_SPOOFER, list) {
         if (cursor->info.target_ino == ino) {
-            SUSFS_LOGI("spoofing kstat for pathname '%s' for UID %i\n", cursor->info.target_pathname, current_uid().val);
+            pr_info("susfs: spoofing kstat for pathname '%s' for UID %i\n", cursor->info.target_pathname, current_uid().val);
 			out_stat->st_ino = cursor->info.spoofed_ino;
 			out_stat->st_dev = cursor->info.spoofed_dev;
+			out_stat->st_rdev = cursor->info.spoofed_rdev;
+			out_stat->st_mode = cursor->info.spoofed_mode;
+			out_stat->st_nlink = cursor->info.spoofed_st_nlink;
+			out_stat->st_uid = cursor->info.spoofed_st_uid;
+			out_stat->st_gid = cursor->info.spoofed_st_gid;
 			out_stat->st_atime = cursor->info.spoofed_atime_tv_sec;
 			out_stat->st_mtime = cursor->info.spoofed_mtime_tv_sec;
 			out_stat->st_ctime = cursor->info.spoofed_ctime_tv_sec;
@@ -402,28 +406,26 @@ void susfs_suspicious_kstat(unsigned long ino, struct stat* out_stat) {
 			out_stat->st_atime_nsec = cursor->info.spoofed_atime_tv_nsec;
 			out_stat->st_mtime_nsec = cursor->info.spoofed_mtime_tv_nsec;
 			out_stat->st_ctime_nsec = cursor->info.spoofed_ctime_tv_nsec;
-#endif
+#endif			
 			return;
         }
     }
 }
 
-int susfs_suspicious_maps(unsigned long target_ino, unsigned long* orig_ino, dev_t* orig_dev) {
+int susfs_suspicious_kstat_or_hide_in_maps(unsigned long target_ino, unsigned long* orig_ino, dev_t* orig_dev) {
     struct st_susfs_suspicious_kstat_list *cursor, *temp;
 
 	if (!uid_matches_suspicious_kstat()) return 0;
 	list_for_each_entry_safe(cursor, temp, &LH_KSTAT_SPOOFER, list) {
         if (cursor->info.target_ino == target_ino) {
 			if (cursor->info.hide_in_maps == HIDE_IN_MAPS_HIDE_ENTRYS) {
-				SUSFS_LOGI("hiding pathname '%s' in maps for UID %i\n", cursor->info.target_pathname, current_uid().val);
+				pr_info("susfs: hiding pathname '%s' in maps for UID %i\n", cursor->info.target_pathname, current_uid().val);
 				return 1;
 			}
-			if (target_ino != 0) {
-				*orig_ino = cursor->info.spoofed_ino;
-				// someone tell me why the hell I need to left shift 12 bits, userspace's dev number is different in kernel ?
-				*orig_dev = cursor->info.spoofed_dev << 12;
-				return 0;
-			}
+            pr_info("susfs: spoofing kstat for pathname '%s' for UID %i\n", cursor->info.target_pathname, current_uid().val);
+			*orig_ino = cursor->info.spoofed_ino;
+			*orig_dev = cursor->info.spoofed_dev;
+			return 1;
         }
     }
 	return 0;
@@ -433,7 +435,7 @@ int susfs_suspicious_maps(unsigned long target_ino, unsigned long* orig_ino, dev
 static void umount_mnt(struct path *path, int flags) {
 	int err = path_umount(path, flags);
 	if (err) {
-		SUSFS_LOGI("umount %s failed: %d\n", path->dentry->d_iname, err);
+		pr_info("susfs: umount %s failed: %d\n", path->dentry->d_iname, err);
 	}
 }
 
@@ -444,7 +446,7 @@ static bool should_umount(struct path *path)
 	}
 
 	if (current->nsproxy->mnt_ns == init_nsproxy.mnt_ns) {
-		SUSFS_LOGI("ignore global mnt namespace process: %d\n",
+		pr_info("susfs: ignore global mnt namespace process: %d\n",
 			current_uid().val);
 		return false;
 	}
@@ -481,7 +483,7 @@ void susfs_try_umount(void) {
     struct st_susfs_try_umount_list *cursor, *temp;
 
 	list_for_each_entry_safe(cursor, temp, &LH_TRY_UMOUNT_PATH, list) {
-		SUSFS_LOGI("umounting '%s' for uid: %d\n", cursor->info.name, current_uid().val);
+		pr_info("susfs: umounting '%s' for uid: %d\n", cursor->info.name, current_uid().val);
         try_umount(cursor->info.name, false, MNT_DETACH);
     }
 }
@@ -507,21 +509,7 @@ void susfs_spoof_uname(struct new_utsname* tmp) {
 		memset(tmp->machine, 0, __NEW_UTS_LEN);
 		strncpy(tmp->machine, my_uname.machine, __NEW_UTS_LEN);
 	}
-	SUSFS_LOGI("spoofed uname to '%s %s %s %s %s' for uid: %d\n", 
-				tmp->sysname, tmp->nodename, tmp->release, tmp->version, tmp->machine, current_uid().val);
 }
-
-void susfs_set_log(bool enabled) {
-	spin_lock(&susfs_spin_lock);
-	is_log_enable = enabled;
-	spin_unlock(&susfs_spin_lock);
-	if (is_log_enable) {
-		pr_info("susfs: enable logging to kernel");
-	} else if (!is_log_enable) {
-		pr_info("susfs: disable logging to kernel");
-	}
-}
-
 /* For files/directories in /sdcard/ but not in /sdcard/Android/data/, please delete it  
  * by yourself
  */
