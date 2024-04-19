@@ -53,6 +53,9 @@ CONFIG_LLVM_POLLY=y
 CONFIG_LD_DEAD_CODE_DATA_ELIMINATION=y
 CONFIG_LD_LLD=y
 
+## Hacks
+CONFIG_OPLUS_MM_HACKS=y
+
 #
 # Power management options
 #
