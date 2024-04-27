@@ -3,7 +3,7 @@
 # Copyright (C) 2020-2021 Adithya R.
 
 SECONDS=0
-ZIPNAME="MoeKSU-Dynamic-PixelOS-$(date '+%Y%m%d').zip"
+ZIPNAME="MoeKSU-Dynamic-$(date '+%Y%m%d').zip"
 TC_DIR="$HOME/tc/clang-19.0.0"
 GCC_64_DIR="$HOME/tc/aarch64-linux-android-14.0"
 GCC_32_DIR="$HOME/tc/arm-linux-androideabi-14.0"
@@ -82,7 +82,7 @@ if [ -f "out/arch/arm64/boot/Image.gz-dtb" ] && \
     echo -e "\nKernel compiled successfully! Zipping up...\n"
     if [ -d "$AK3_DIR" ]; then
         cp -r $AK3_DIR AnyKernel3
-    elif ! git clone -b ksu_dynamic_pixelos -q https://github.com/MoeKernel/AnyKernel3; then
+    elif ! git clone -b ksu_dynamic -q https://github.com/MoeKernel/AnyKernel3; then
         echo -e "\nAnyKernel3 repo not found locally and cloning failed! Aborting..."
         exit 1
     fi
