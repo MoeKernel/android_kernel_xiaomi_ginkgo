@@ -2386,6 +2386,7 @@ repair:
 bool tcp_schedule_loss_probe(struct sock *sk, bool advancing_rto)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
+	struct inet_connection_sock *icsk = inet_csk(sk);
 	u32 timeout, timeout_us, rto_delta_us;
 	int early_retrans;
 
