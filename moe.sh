@@ -10,7 +10,7 @@ TC_DIR="$HOME/tc/clang-19.0.0"
 GCC_64_DIR="$HOME/tc/aarch64-linux-android-14.0"
 GCC_32_DIR="$HOME/tc/arm-linux-androideabi-14.0"
 AK3_DIR="$HOME/android/AnyKernel3"
-DEFCONFIG="vendor/moe_no_ksu_defconfig"
+DEFCONFIG="vendor/moe_noksu_defconfig"
 
 export PATH="$TC_DIR/bin:$PATH"
 
