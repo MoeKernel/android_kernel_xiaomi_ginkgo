@@ -64,7 +64,7 @@ echo -e "\nStarting compilation... wait\n"
 make -j$(nproc --all) \
     O=out \
     ARCH=arm64 \
-    CC=clang \
+    CC="ccache clang" \
     LD=ld.lld \
     AR=llvm-ar \
     AS=llvm-as \
