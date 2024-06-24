@@ -9,7 +9,9 @@ CONFIG_UNAME_OVERRIDE=y
 CONFIG_UNAME_OVERRIDE_TARGET="com.google.android.gms"
 CONFIG_UNAME_OVERRIDE_STRING="5.15.0-mainline-proton-dirty"
 
+## Others
 CONFIG_INIT_STACK_ALL_ZERO=y
+CONFIG_BINFMT_MISC=y
 
 ## Docker
 # Generally Necessary
