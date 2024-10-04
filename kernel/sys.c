@@ -1212,8 +1212,6 @@ static int override_release(char __user *release, size_t len)
 	return ret;
 }
 
-<<<<<<< HEAD
-=======
 static int override_version(struct new_utsname __user *name)
 {
 	int ret = 0;
