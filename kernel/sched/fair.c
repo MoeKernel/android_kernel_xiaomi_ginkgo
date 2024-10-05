@@ -174,6 +174,7 @@ static inline struct task_struct *task_of(struct sched_entity *se)
 
 #ifdef CONFIG_SCHED_BORE
 uint __read_mostly sched_bore                   = 1;
+uint __read_mostly sched_burst_exclude_kthreads = 1;
 uint __read_mostly sched_burst_smoothness_long  = 1;
 uint __read_mostly sched_burst_smoothness_short = 0;
 uint __read_mostly sched_burst_fork_atavistic   = 2;
@@ -211,7 +212,8 @@ static void update_burst_score(struct sched_entity *se) {
 	u8 prio = p->static_prio - MAX_RT_PRIO;
 	u8 prev_prio = min(39, prio + se->burst_score);
 
-	se->burst_score = se->burst_penalty >> 2;
+	if (!(p->flags & PF_KTHREAD && sched_burst_exclude_kthreads))
+		se->burst_score = se->burst_penalty >> 2;
 
 	u8 new_prio = min(39, prio + se->burst_score);
 	// if (new_prio != prev_prio)
