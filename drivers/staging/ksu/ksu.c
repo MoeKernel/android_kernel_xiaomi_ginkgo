@@ -1,30 +1,19 @@
-#include "linux/fs.h"
-#include "linux/module.h"
-#include "linux/workqueue.h"
-#include "linux/init.h"
+#include <linux/export.h>
+#include <linux/fs.h>
+#include <linux/kobject.h>
+#include <linux/module.h>
+#include <linux/workqueue.h>
 
 #include "allowlist.h"
 #include "arch.h"
 #include "core_hook.h"
 #include "klog.h" // IWYU pragma: keep
 #include "ksu.h"
-#include "uid_observer.h"
+#include "throne_tracker.h"
 
-unsigned int enable_kernelsu = 1;
-
-static int __init read_kernelsu_state(char *s)
-{
-	if (s)
-		enable_kernelsu = simple_strtoul(s, NULL, 0);
-
-	return 1;
-}
-__setup("kernelsu.enabled=", read_kernelsu_state);
-
-unsigned int get_ksu_state(void)
-{
-	return enable_kernelsu;
-}
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs.h>
+#endif
 
 static struct workqueue_struct *ksu_workqueue;
 
@@ -47,17 +36,13 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 					    flags);
 }
 
-extern void ksu_enable_sucompat();
-extern void ksu_enable_ksud();
+extern void ksu_sucompat_init();
+extern void ksu_sucompat_exit();
+extern void ksu_ksud_init();
+extern void ksu_ksud_exit();
 
 int __init kernelsu_init(void)
 {
-
-	if (enable_kernelsu < 1) {
-		pr_info_once(" is disabled");
-		return 0;
-	}
-
 #ifdef CONFIG_KSU_DEBUG
 	pr_alert("*************************************************************");
 	pr_alert("**     NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE NOTICE    **");
@@ -68,32 +53,43 @@ int __init kernelsu_init(void)
 	pr_alert("*************************************************************");
 #endif
 
+#ifdef CONFIG_KSU_SUSFS
+	susfs_init();
+#endif
+
 	ksu_core_init();
 
 	ksu_workqueue = alloc_ordered_workqueue("kernelsu_work_queue", 0);
 
 	ksu_allowlist_init();
 
-	ksu_uid_observer_init();
+	ksu_throne_tracker_init();
 
 #ifdef CONFIG_KPROBES
-	ksu_enable_sucompat();
-	ksu_enable_ksud();
+	ksu_sucompat_init();
+	ksu_ksud_init();
 #endif
 
+#ifdef MODULE
+#ifndef CONFIG_KSU_DEBUG
+	kobject_del(&THIS_MODULE->mkobj.kobj);
+#endif
+#endif
 	return 0;
 }
 
 void kernelsu_exit(void)
 {
-	if (enable_kernelsu < 1)
-		return;
-	
 	ksu_allowlist_exit();
 
-	ksu_uid_observer_exit();
+	ksu_throne_tracker_exit();
 
 	destroy_workqueue(ksu_workqueue);
+
+#ifdef CONFIG_KPROBES
+	ksu_ksud_exit();
+	ksu_sucompat_exit();
+#endif
 
 	ksu_core_exit();
 }

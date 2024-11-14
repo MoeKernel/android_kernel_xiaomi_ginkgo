@@ -2,10 +2,11 @@
 #include "objsec.h"
 #include "linux/version.h"
 #include "../klog.h" // IWYU pragma: keep
+#ifndef KSU_COMPAT_USE_SELINUX_STATE
+#include "avc.h"
+#endif
 
 #define KERNEL_SU_DOMAIN "u:r:su:s0"
-
-static u32 ksu_sid;
 
 static int transive_to_domain(const char *domain)
 {
@@ -28,9 +29,6 @@ static int transive_to_domain(const char *domain)
 			domain, sid, error);
 	}
 	if (!error) {
-		if (!ksu_sid)
-			ksu_sid = sid;
-
 		tsec->sid = sid;
 		tsec->create_sid = 0;
 		tsec->keycreate_sid = 0;
@@ -57,28 +55,62 @@ if (!is_domain_permissive) {
 void setenforce(bool enforce)
 {
 #ifdef CONFIG_SECURITY_SELINUX_DEVELOP
+#ifdef KSU_COMPAT_USE_SELINUX_STATE
 	selinux_state.enforcing = enforce;
+#else
+	selinux_enforcing = enforce;
+#endif
 #endif
 }
 
 bool getenforce()
 {
 #ifdef CONFIG_SECURITY_SELINUX_DISABLE
+#ifdef KSU_COMPAT_USE_SELINUX_STATE
 	if (selinux_state.disabled) {
+#else
+	if (selinux_disabled) {
+#endif
 		return false;
 	}
 #endif
 
 #ifdef CONFIG_SECURITY_SELINUX_DEVELOP
+#ifdef KSU_COMPAT_USE_SELINUX_STATE
 	return selinux_state.enforcing;
+#else
+	return selinux_enforcing;
+#endif
 #else
 	return true;
 #endif
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0)) &&                         \
+	!defined(KSU_COMPAT_HAS_CURRENT_SID)
+/*
+ * get the subjective security ID of the current task
+ */
+static inline u32 current_sid(void)
+{
+	const struct task_security_struct *tsec = current_security();
+
+	return tsec->sid;
+}
+#endif
+
 bool is_ksu_domain()
 {
-	return ksu_sid && current_sid() == ksu_sid;
+	char *domain;
+	u32 seclen;
+	bool result;
+	int err = security_secid_to_secctx(current_sid(), &domain, &seclen);
+	if (err) {
+		return false;
+	}
+	result = strncmp(KERNEL_SU_DOMAIN, domain, seclen) == 0;
+	security_release_secctx(domain, seclen);
+	return result;
 }
 
 bool is_zygote(void *sec)
@@ -89,9 +121,42 @@ bool is_zygote(void *sec)
 	}
 	char *domain;
 	u32 seclen;
+	bool result;
 	int err = security_secid_to_secctx(tsec->sid, &domain, &seclen);
 	if (err) {
 		return false;
 	}
-	return strncmp("u:r:zygote:s0", domain, seclen) == 0;
+	result = strncmp("u:r:zygote:s0", domain, seclen) == 0;
+	security_release_secctx(domain, seclen);
+	return result;
+}
+
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+u32 ksu_get_zygote_sid(void)
+{
+	u32 zygote_sid = 0;
+	int err = security_secctx_to_secid("u:r:zygote:s0", strlen("u:r:zygote:s0"),
+					   &zygote_sid);
+	if (err) {
+		pr_info("get zygote sid err %d\n", err);
+	}
+	return zygote_sid;
+}
+
+u32 ksu_get_current_sid(void) {
+	return current_sid();
+}
+#endif
+
+#define DEVPTS_DOMAIN "u:object_r:ksu_file:s0"
+
+u32 ksu_get_devpts_sid()
+{
+	u32 devpts_sid = 0;
+	int err = security_secctx_to_secid(DEVPTS_DOMAIN, strlen(DEVPTS_DOMAIN),
+					   &devpts_sid);
+	if (err) {
+		pr_info("get devpts sid err %d\n", err);
+	}
+	return devpts_sid;
 }

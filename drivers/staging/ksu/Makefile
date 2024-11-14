@@ -1,21 +1,33 @@
-obj-y += ksu.o
-obj-y += allowlist.o
-kernelsu-objs := apk_sign.o
-obj-y += kernelsu.o
-obj-y += module_api.o
-obj-y += sucompat.o
-obj-y += uid_observer.o
-obj-y += manager.o
-obj-y += core_hook.o
-obj-y += ksud.o
-obj-y += embed_ksud.o
-obj-y += kernel_compat.o
+kernelsu-objs := ksu.o
+kernelsu-objs += allowlist.o
+kernelsu-objs += apk_sign.o
+kernelsu-objs += sucompat.o
+kernelsu-objs += throne_tracker.o
+kernelsu-objs += core_hook.o
+kernelsu-objs += ksud.o
+kernelsu-objs += embed_ksud.o
+kernelsu-objs += kernel_compat.o
 
-obj-y += selinux/
+kernelsu-objs += selinux/selinux.o
+kernelsu-objs += selinux/sepolicy.o
+kernelsu-objs += selinux/rules.o
+ccflags-y += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include
+ccflags-y += -I$(objtree)/security/selinux -include $(srctree)/include/uapi/asm-generic/errno.h
+
+obj-$(CONFIG_KSU) += kernelsu.o
+
 # KSU Version
 $(eval KSU_VERSION=11994)
 $(info -- KernelSU version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
+
+ifeq ($(shell grep -q " current_sid(void)" $(srctree)/security/selinux/include/objsec.h; echo $$?),0)
+ccflags-y += -DKSU_COMPAT_HAS_CURRENT_SID
+endif
+
+ifeq ($(shell grep -q "struct selinux_state " $(srctree)/security/selinux/include/security.h; echo $$?),0)
+ccflags-y += -DKSU_COMPAT_HAS_SELINUX_STATE
+endif
 
 ifndef KSU_EXPECTED_SIZE
 KSU_EXPECTED_SIZE := 0x033b
@@ -35,5 +47,48 @@ endif
 
 ccflags-y += -DEXPECTED_SIZE=$(KSU_EXPECTED_SIZE)
 ccflags-y += -DEXPECTED_HASH=\"$(KSU_EXPECTED_HASH)\"
+
+ifeq ($(shell grep -q "int path_umount" $(srctree)/fs/namespace.c; echo $$?),0)
+ccflags-y += -DKSU_UMOUNT
+else
+$(info -- Did you know you can backport path_umount to fs/namespace.c from 5.9?)
+$(info -- Read: https://kernelsu.org/guide/how-to-integrate-for-non-gki.html#how-to-backport-path-umount)
+endif
+
 ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat
-ccflags-y += -Wno-declaration-after-statement
+ccflags-y += -Wno-declaration-after-statement -Wno-unused-function
+
+ifeq ($(shell test -e $(srctree)/fs/susfs.c; echo $$?),0)
+ifdef KSU_SUSFS
+ccflags-y += -DKSU_SUSFS
+endif
+ifdef KSU_SUSFS_SUS_PATH
+ccflags-y += -DKSU_SUSFS_SUS_PATH
+endif
+ifdef KSU_SUSFS_SUS_MOUNT
+ccflags-y += -DKSU_SUSFS_SUS_MOUNT
+endif
+ifdef KSU_SUSFS_SUS_KSTAT
+ccflags-y += -DKSU_SUSFS_SUS_KSTAT
+endif
+ifdef KSU_SUSFS_SUS_OVERLAYFS
+ccflags-y += -DKSU_SUSFS_SUS_OVERLAYFS
+endif
+ifdef KSU_SUSFS_TRY_UMOUNT
+ccflags-y += -DKSU_SUSFS_TRY_UMOUNT
+endif
+ifdef KSU_SUSFS_SPOOF_UNAME
+ccflags-y += -DKSU_SUSFS_SPOOF_UNAME
+endif
+ifdef KSU_SUSFS_ENABLE_LOG
+ccflags-y += -DKSU_SUSFS_ENABLE_LOG
+endif
+ifdef KSU_SUSFS_SUS_SU
+ccflags-y += -DKSU_SUSFS_SUS_SU
+endif
+else
+$(info -- You have not integrate susfs in your kernel.)
+$(info -- Read: https://gitlab.com/simonpunk/susfs4ksu)
+endif
+
+# Keep a new line here!! Because someone may append config
