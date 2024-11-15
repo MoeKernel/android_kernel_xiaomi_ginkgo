@@ -12,7 +12,6 @@
 #include <linux/security.h>
 #include <linux/fs_struct.h>
 #include <linux/sched/task.h>
-#include <linux/suspicious.h>
 
 #include "proc/internal.h" /* only for get_proc_task() in ->open() */
 
