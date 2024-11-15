@@ -11,12 +11,13 @@ kernelsu-objs += kernel_compat.o
 kernelsu-objs += selinux/selinux.o
 kernelsu-objs += selinux/sepolicy.o
 kernelsu-objs += selinux/rules.o
+kernelsu-objs += selinux/kernel_compat.o
 ccflags-y += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include
 ccflags-y += -I$(objtree)/security/selinux -include $(srctree)/include/uapi/asm-generic/errno.h
 
 obj-$(CONFIG_KSU) += kernelsu.o
 
-# KSU Version
+# hardcode!
 $(eval KSU_VERSION=11986)
 $(info -- KernelSU version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
@@ -42,17 +43,61 @@ ccflags-y += -DKSU_MANAGER_PACKAGE=\"$(KSU_MANAGER_PACKAGE)\"
 $(info -- KernelSU Manager package name: $(KSU_MANAGER_PACKAGE))
 endif
 
-# $(info -- KernelSU Manager signature size: $(KSU_EXPECTED_SIZE))
-# $(info -- KernelSU Manager signature hash: $(KSU_EXPECTED_HASH))
+$(info -- KernelSU Manager signature size: $(KSU_EXPECTED_SIZE))
+$(info -- KernelSU Manager signature hash: $(KSU_EXPECTED_HASH))
 
 ccflags-y += -DEXPECTED_SIZE=$(KSU_EXPECTED_SIZE)
 ccflags-y += -DEXPECTED_HASH=\"$(KSU_EXPECTED_HASH)\"
 
-ifeq ($(shell grep -q "int path_umount" $(srctree)/fs/namespace.c; echo $$?),0)
+#ifeq ($(shell grep -q "int path_umount" $(srctree)/fs/namespace.c; echo $$?),0)
+#ccflags-y += -DKSU_UMOUNT
+#else
+#$(info -- Did you know you can backport path_umount to fs/namespace.c from 5.9?)
+#$(info -- Read: https://kernelsu.org/guide/how-to-integrate-for-non-gki.html#how-to-backport-path-umount)
+#endif
+
 ccflags-y += -DKSU_UMOUNT
-else
-$(info -- Did you know you can backport path_umount to fs/namespace.c from 5.9?)
-$(info -- Read: https://kernelsu.org/guide/how-to-integrate-for-non-gki.html#how-to-backport-path-umount)
+ifneq ($(shell grep -Eq "^static int can_umount" $(srctree)/fs/namespace.c; echo $$?),0)
+$(info -- KSU_SUSFS: adding function 'static int can_umount(const struct path *path, int flags);' to $(srctree)/fs/namespace.c)
+CAN_UMOUNT = static int can_umount(const struct path *path, int flags)\n\
+{\n\t\
+	struct mount *mnt = real_mount(path->mnt);\n\t\
+	if (flags & ~(MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW))\n\t\t\
+		return -EINVAL;\n\t\
+	if (!may_mount())\n\t\t\
+		return -EPERM;\n\t\
+	if (path->dentry != path->mnt->mnt_root)\n\t\t\
+		return -EINVAL;\n\t\
+	if (!check_mnt(mnt))\n\t\t\
+		return -EINVAL;\n\t\
+	if (mnt->mnt.mnt_flags & MNT_LOCKED)\n\t\t\
+		return -EINVAL;\n\t\
+	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))\n\t\t\
+		return -EPERM;\n\t\
+	return 0;\n\
+}\n
+$(shell sed -i '/^static bool is_mnt_ns_file/i $(CAN_UMOUNT)' $(srctree)/fs/namespace.c;)
+endif
+
+ifneq ($(shell grep -Eq "^int path_umount" $(srctree)/fs/namespace.c; echo $$?),0)
+$(info -- KSU_SUSFS: adding function 'int path_umount(struct path *path, int flags);' to $(srctree)/fs/namespace.c)
+PATH_UMOUNT = int path_umount(struct path *path, int flags)\n\
+{\n\t\
+	struct mount *mnt = real_mount(path->mnt);\n\t\
+	int ret;\n\t\
+	ret = can_umount(path, flags);\n\t\
+	if (!ret)\n\t\t\
+		ret = do_umount(mnt, flags);\n\t\
+	dput(path->dentry);\n\t\
+	mntput_no_expire(mnt);\n\t\
+	return ret;\n\
+}\n
+$(shell sed -i '/^static bool is_mnt_ns_file/i $(PATH_UMOUNT)' $(srctree)/fs/namespace.c;)
+endif
+
+ifneq ($(shell grep -Eq "^int path_umount" $(srctree)/fs/internal.h; echo $$?),0)
+$(shell sed -i '/^extern void __init mnt_init/a int path_umount(struct path *path, int flags);' $(srctree)/fs/internal.h;)
+$(info -- KSU_SUSFS: adding 'int path_umount(struct path *path, int flags);' to $(srctree)/fs/internal.h)
 endif
 
 ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat
@@ -68,6 +113,9 @@ endif
 ifdef KSU_SUSFS_SUS_MOUNT
 ccflags-y += -DKSU_SUSFS_SUS_MOUNT
 endif
+ifdef KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
+ccflags-y += -DKSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
+endif
 ifdef KSU_SUSFS_SUS_KSTAT
 ccflags-y += -DKSU_SUSFS_SUS_KSTAT
 endif
@@ -76,6 +124,9 @@ ccflags-y += -DKSU_SUSFS_SUS_OVERLAYFS
 endif
 ifdef KSU_SUSFS_TRY_UMOUNT
 ccflags-y += -DKSU_SUSFS_TRY_UMOUNT
+endif
+ifdef KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
+ccflags-y += -DKSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
 endif
 ifdef KSU_SUSFS_SPOOF_UNAME
 ccflags-y += -DKSU_SUSFS_SPOOF_UNAME

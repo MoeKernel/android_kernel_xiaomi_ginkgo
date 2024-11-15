@@ -6,8 +6,6 @@
 #include "avc.h"
 #endif
 
-#define KERNEL_SU_DOMAIN "u:r:su:s0"
-
 static int transive_to_domain(const char *domain)
 {
 	struct cred *cred;
@@ -108,7 +106,7 @@ bool is_ksu_domain()
 	if (err) {
 		return false;
 	}
-	result = strncmp(KERNEL_SU_DOMAIN, domain, seclen) == 0;
+	result = strncmp(KERNEL_SU_CONTEXT, domain, seclen) == 0;
 	security_release_secctx(domain, seclen);
 	return result;
 }
@@ -136,7 +134,7 @@ u32 ksu_get_zygote_sid(void)
 {
 	u32 zygote_sid = 0;
 	int err = security_secctx_to_secid("u:r:zygote:s0", strlen("u:r:zygote:s0"),
-					   &zygote_sid);
+					&zygote_sid);
 	if (err) {
 		pr_info("get zygote sid err %d\n", err);
 	}
