@@ -78,7 +78,7 @@ scm_version()
 			# again using exactly 12 hex chars.
 			else
 				head="$(echo $head | cut -c1-12)"
-				printf '%s%s' -g $head
+				printf '%s%s'
 			fi
 		fi
 
@@ -97,7 +97,7 @@ scm_version()
 			git --no-optional-locks status -uno --porcelain 2>/dev/null ||
 			git diff-index --name-only HEAD
 		} | grep -qvE '^(.. )?scripts/package'; then
-			printf '%s' -dirty
+			printf '%s'
 		fi
 
 		# All done with git
@@ -190,7 +190,6 @@ else
 	# LOCALVERSION= is not specified
 	if test "${LOCALVERSION+set}" != "set"; then
 		scm=$(scm_version --short)
-		res="$res${scm:++}"
 	fi
 fi
 
