@@ -1212,25 +1212,11 @@ static int override_release(char __user *release, size_t len)
 	return ret;
 }
 
-static int override_version(struct new_utsname __user *name)
-{
-	int ret = 0;
-
-#ifdef CONFIG_F2FS_REPORT_FAKE_KERNEL_VERSION
-	if (strcmp(current->comm, "fsck.f2fs"))
-		return 0;
-
-	ret = copy_to_user(name->release, CONFIG_F2FS_FAKE_KERNEL_RELEASE,
-			   strlen(CONFIG_F2FS_FAKE_KERNEL_RELEASE) + 1);
-	if (ret)
-		return ret;
-
-	ret = copy_to_user(name->version, CONFIG_F2FS_FAKE_KERNEL_VERSION,
-			   strlen(CONFIG_F2FS_FAKE_KERNEL_VERSION) + 1);
+#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
+extern int susfs_spoof_uname(struct new_utsname* tmp);
 #endif
 
-	return ret;
-}
+extern bool is_legacy_ebpf;
 
 static uint64_t netbpfload_pid = 0;
 SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
@@ -1243,16 +1229,18 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 		goto bypass_orig_flow;
 #endif
 	memcpy(&tmp, utsname(), sizeof(tmp));
-	if (!strncmp(current->comm, "netbpfload", 10) &&
-	    current->pid != netbpfload_pid) {
-		netbpfload_pid = current->pid;
-		strcpy(tmp.release, "6.6.40");
-		pr_debug("fake uname: %s/%d release=%s\n",
-			 current->comm, current->pid, tmp.release);
-	}
 #ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
 bypass_orig_flow:
 #endif
+	if (!is_legacy_ebpf) {
+	  if (!strncmp(current->comm, "netbpfload", 10) &&
+	      current->pid != netbpfload_pid) {
+	    netbpfload_pid = current->pid;
+	    strcpy(tmp.release, "6.6.40");
+	    pr_debug("fake uname: %s/%d release=%s\n",
+		     current->comm, current->pid, tmp.release);
+	  }
+	}
 	up_read(&uts_sem);
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
 		return -EFAULT;
