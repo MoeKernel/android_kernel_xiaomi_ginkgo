@@ -4,7 +4,6 @@
 obj-y				+= media/
 obj-y				+= typec/
 obj-$(CONFIG_IRDA)		+= irda/net/
-obj-$(CONFIG_KSU)		+= ksu/
 obj-$(CONFIG_IRDA)		+= irda/drivers/
 obj-$(CONFIG_PRISM2_USB)	+= wlan-ng/
 obj-$(CONFIG_COMEDI)		+= comedi/
