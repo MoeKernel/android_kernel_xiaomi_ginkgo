@@ -1399,21 +1399,10 @@ struct task_struct {
 	void				*security;
 #endif
 
-#ifdef CONFIG_FUSE_SHORTCIRCUIT
-int fuse_boost;
-#endif
-
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 	u64 android_kabi_reserved1;
 	u64 android_kabi_reserved2;
 #endif
-
-	struct {
-		struct work_struct work;
-		atomic_t running;
-		bool free_stack;
-	} async_free;
-
 	/*
 	 * New fields for task_struct should be added above here, so that
 	 * they are included in the randomized portion of task_struct.
