@@ -1225,22 +1225,12 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 		goto bypass_orig_flow;
 #endif
 	memcpy(&tmp, utsname(), sizeof(tmp));
-#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
-bypass_orig_flow:
-#endif
-	if (!is_legacy_ebpf) {
-	  if (!strncmp(current->comm, "netbpfload", 10) &&
-	      current->pid != netbpfload_pid) {
-	    netbpfload_pid = current->pid;
-	    strcpy(tmp.release, "6.6.40");
-	    pr_debug("fake uname: %s/%d release=%s\n",
-		     current->comm, current->pid, tmp.release);
-	  }
+	if (!strncmp(current->comm, "bpfloader", 9) ||
+	    !strncmp(current->comm, "netd", 4)) {
+		strcpy(tmp.release, "4.19.0");
+		pr_debug("fake uname: %s/%d release=%s\n",
+			 current->comm, current->pid, tmp.release);
 	}
-// make sure bpf uname spoof is prioritized
-#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
-	susfs_spoof_uname(&tmp);
-#endif
 	up_read(&uts_sem);
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
 		return -EFAULT;
