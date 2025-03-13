@@ -1221,8 +1221,7 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 
 	down_read(&uts_sem);
 #ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
-	if (likely(!susfs_spoof_uname(&tmp)))
-		goto bypass_orig_flow;
+	susfs_spoof_uname(&tmp);
 #endif
 	memcpy(&tmp, utsname(), sizeof(tmp));
 	if (current_uid().val == 0 && 
