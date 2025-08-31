@@ -6,8 +6,6 @@
 
 #ifdef CONFIG_KSU_SUSFS_SPOOF_PROC_CMDLINE
 extern int susfs_spoof_proc_cmdline(struct seq_file *m);
-#ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
-extern int susfs_spoof_cmdline_or_bootconfig(struct seq_file *m);
 #endif
 
 static int cmdline_proc_show(struct seq_file *m, void *v)
@@ -19,13 +17,6 @@ static int cmdline_proc_show(struct seq_file *m, void *v)
 	}
 #endif
 	seq_printf(m, "%s\n", saved_command_line);
-#ifdef CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
-	if (!susfs_spoof_cmdline_or_bootconfig(m)) {
-		seq_putc(m, '\n');
-		return 0;
-	}
-#endif
-
 	return 0;
 }
 
