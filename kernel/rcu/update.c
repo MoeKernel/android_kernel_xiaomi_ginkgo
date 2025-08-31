@@ -803,18 +803,6 @@ static int __init rcu_spawn_tasks_kthread(void)
 {
 	struct task_struct *t;
 
-	if (READ_ONCE(rcu_tasks_kthread_ptr)) {
-		smp_mb(); /* Ensure caller sees full kthread. */
-		return;
-	}
-	mutex_lock(&rcu_tasks_kthread_mutex);
-	if (rcu_tasks_kthread_ptr) {
-		mutex_unlock(&rcu_tasks_kthread_mutex);
-		return;
-	}
-	t = kthread_run_perf_critical(rcu_tasks_kthread,
-				NULL, "rcu_tasks_kthread");
-	BUG_ON(IS_ERR(t));
 	t = kthread_run(rcu_tasks_kthread, NULL, "rcu_tasks_kthread");
 	if (WARN_ONCE(IS_ERR(t), "%s: Could not start Tasks-RCU grace-period kthread, OOM is now expected behavior\n", __func__))
 		return 0;
