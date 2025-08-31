@@ -186,7 +186,7 @@ EXPORT_SYMBOL(vfs_statx_fd);
  * 0 will be returned on success, and a -ve error code if unsuccessful.
  */
 
-#ifdef CONFIG_KSU_SUSFS_SUS_SU
+#ifdef CONFIG_KSU
 extern bool susfs_is_sus_su_hooks_enabled __read_mostly;
 extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
 #endif
@@ -201,12 +201,6 @@ int vfs_statx(int dfd, const char __user *filename, int flags,
 	#ifdef CONFIG_KSU
 	ksu_handle_stat(&dfd, &filename, &flags);
 	#endif
-
-#ifdef CONFIG_KSU_SUSFS_SUS_SU
-	if (susfs_is_sus_su_hooks_enabled) {
-		ksu_handle_stat(&dfd, &filename, &flags);
-	}
-#endif
 
 	if ((flags & ~(AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT |
 		       AT_EMPTY_PATH | KSTAT_QUERY_FLAGS)) != 0)
